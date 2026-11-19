@@ -25,7 +25,8 @@ public class BookingService(RoomRepository rooms, BookingRepository bookings)
 
         foreach (var existing in bookings.ListForRoom(roomId))
         {
-            if (existing.StartUtc <= endUtc && startUtc <= existing.EndUtc)
+            if (existing.Status == BookingStatus.Active
+                && existing.StartUtc < endUtc && startUtc < existing.EndUtc)
                 throw new BusinessException("RoomOccupied", "The room is occupied in this interval.", 409);
         }
 
@@ -56,6 +57,9 @@ public class BookingService(RoomRepository rooms, BookingRepository bookings)
     public void Cancel(Guid id)
     {
         var booking = Get(id);
+        if (booking.Status == BookingStatus.Cancelled)
+            throw new BusinessException("BookingAlreadyCancelled", "The booking is already cancelled.", 409);
+
         booking.Status = BookingStatus.Cancelled;
     }
 }
