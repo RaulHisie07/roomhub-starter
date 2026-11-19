@@ -1,17 +1,20 @@
-using RoomHub.Api.Services;
+using RoomHub.Api.Domain.Common;
+using RoomHub.Api.Domain.Rooms;
+using RoomHub.Api.Domain.Bookings;
+using RoomHub.Api.Common.Cqrs;
+using RoomHub.Api.Common.Http;
 
 namespace RoomHub.Api.Features.Rooms.GetRoom;
-
-public sealed record GetRoomResponse(Guid Id, string Name, int Capacity);
 
 public static class GetRoomEndpoint
 {
     public static void MapGetRoom(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/rooms/{id:guid}", (Guid id, RoomService service) =>
+        app.MapGet("/api/rooms/{id:guid}", async (Guid id,
+            IQueryHandler<GetRoomQuery, Result<GetRoomResponse>> handler, CancellationToken cancellationToken) =>
         {
-            var room = service.Get(id);
-            return Results.Ok(new GetRoomResponse(room.Id, room.Name, room.Capacity));
+            var result = await handler.HandleAsync(new GetRoomQuery(id), cancellationToken);
+            return result.ToHttpResult(value => Results.Ok(value));
         }).WithTags("Rooms");
     }
 }

@@ -1,19 +1,21 @@
-using RoomHub.Api.Services;
+using RoomHub.Api.Domain.Common;
+using RoomHub.Api.Domain.Rooms;
+using RoomHub.Api.Domain.Bookings;
+using RoomHub.Api.Common.Cqrs;
+using RoomHub.Api.Common.Http;
 
 namespace RoomHub.Api.Features.Rooms.CreateRoom;
-
 public sealed record CreateRoomRequest(string? Name, int Capacity);
-public sealed record CreateRoomResponse(Guid Id, string Name, int Capacity);
 
 public static class CreateRoomEndpoint
 {
     public static void MapCreateRoom(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/rooms", (CreateRoomRequest request, RoomService service) =>
+        app.MapPost("/api/rooms", async (CreateRoomRequest request,
+            ICommandHandler<CreateRoomCommand, Result<CreateRoomResponse>> handler, CancellationToken cancellationToken) =>
         {
-            var room = service.Create(request.Name, request.Capacity);
-            return Results.Created($"/api/rooms/{room.Id}",
-                new CreateRoomResponse(room.Id, room.Name, room.Capacity));
+            var result = await handler.HandleAsync(new CreateRoomCommand(request.Name, request.Capacity), cancellationToken);
+            return result.ToHttpResult(value => Results.Created($"/api/rooms/{value.Id}", value));
         }).WithTags("Rooms");
     }
 }
